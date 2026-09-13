@@ -1,0 +1,50 @@
+--- C:/Users/user/projects/mmkg/CMEL-dataset-main/cmel_research/clustering_function.py	2026-08-09 08:49:02.898219100 +0800
++++ vendor/cmel_research/clustering_function.py	2026-08-09 10:53:51.024499400 +0800
+@@ -157,8 +157,13 @@
+         # 计算拉普拉斯矩阵 L = D - A
+         laplacian_matrix = degree_matrix - similarity_matrix
+ 
+-        # 计算拉普拉斯矩阵的特征值和特征向量
+-        eigvals, eigvecs = np.linalg.eig(laplacian_matrix)
++        # [REPRO-FIX] 原实现用 np.linalg.eig。L = D - A 在数学上是对称的，
++        # 但 cosine_similarity 的浮点误差会让它有 ~1e-16 的不对称，导致 eig
++        # 在近简并特征值上返回复数特征向量，下游 DBSCAN 直接抛
++        # "ValueError: Complex data not supported"，spectral(SpecLink) 整条线跑不通。
++        # 改为显式对称化 + eigh（对称矩阵专用，保证实数特征对）。
++        laplacian_matrix = (laplacian_matrix + laplacian_matrix.T) / 2.0
++        eigvals, eigvecs = np.linalg.eigh(laplacian_matrix)
+ 
+         # 选择前k个最小的特征值对应的特征向量
+         k = max(2, math.ceil(math.sqrt(len(nearby_text_entity_list))))
+@@ -183,8 +188,13 @@
+             nn = NearestNeighbors(n_neighbors=3, metric="cosine").fit(cluster_centers)
+             _, cluster_index = nn.kneighbors(input_embedding)
+             target_label = cluster_index[0][0]
+-        elif clustering_method in ["pagerank", "leiden", "spectral"]:
+-            # 找到最近邻并使用 Pagerank,Leiden或Spectral的标签
++        # [REPRO-FIX] 原实现这里只列了 pagerank/leiden/spectral，漏了 dbscan，
++        # 导致 clustering_method="dbscan" + classify_method="knn"（论文 Table 1
++        # 的 DB 行，最强基线）直接 UnboundLocalError: target_label。
++        # dbscan 和这三者一样产出逐点标签，归入同一分支即可；
++        # 同函数文本侧的 knn 分支（本文件 Step 3）本来就是方法无关的，无需改。
++        elif clustering_method in ["pagerank", "leiden", "spectral", "dbscan"]:
++            # 找到最近邻并使用 Pagerank,Leiden,Spectral或DBSCAN的标签
+             nn = NearestNeighbors(n_neighbors=3, metric="cosine").fit(embeddings)
+             _, nearest_idx = nn.kneighbors(input_embedding)
+             target_label = labels[nearest_idx[0][0]]
+@@ -383,8 +393,13 @@
+         # 计算拉普拉斯矩阵 L = D - A
+         laplacian_matrix = degree_matrix - similarity_matrix
+ 
+-        # 计算拉普拉斯矩阵的特征值和特征向量
+-        eigvals, eigvecs = np.linalg.eig(laplacian_matrix)
++        # [REPRO-FIX] 原实现用 np.linalg.eig。L = D - A 在数学上是对称的，
++        # 但 cosine_similarity 的浮点误差会让它有 ~1e-16 的不对称，导致 eig
++        # 在近简并特征值上返回复数特征向量，下游 DBSCAN 直接抛
++        # "ValueError: Complex data not supported"，spectral(SpecLink) 整条线跑不通。
++        # 改为显式对称化 + eigh（对称矩阵专用，保证实数特征对）。
++        laplacian_matrix = (laplacian_matrix + laplacian_matrix.T) / 2.0
++        eigvals, eigvecs = np.linalg.eigh(laplacian_matrix)
+ 
+         # 选择前k个最小的特征值对应的特征向量
+         k = max(2, math.ceil(math.sqrt(len(nearby_text_entity_list))))

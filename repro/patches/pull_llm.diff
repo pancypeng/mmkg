@@ -1,0 +1,102 @@
+--- a/cmel_research/pull_llm.py
++++ b/cmel_research/pull_llm.py
+@@ -10,59 +10,42 @@
+ MM_URL = ""
+ 
+ # 正则化处理函数
++def _json_values(output):
++    """从带代码围栏/解释文字的输出中提取完整 JSON 值，支持嵌套结构。"""
++    cleaned = re.sub(r"<think>[\s\S]*?</think>", "", output or "", flags=re.I)
++    cleaned = re.sub(r"```(?:json)?|```", "", cleaned, flags=re.I).strip()
++    decoder = json.JSONDecoder()
++    for candidate in (cleaned, cleaned.replace('\\"', '"')):
++        for index, char in enumerate(candidate):
++            if char not in "[{":
++                continue
++            try:
++                value, _ = decoder.raw_decode(candidate[index:])
++            except json.JSONDecodeError:
++                continue
++            yield value
++
++
+ def normalize_to_json(output):
+-    # 使用正则提取JSON部分
+-    match = re.search(r"\{.*\}", output, re.DOTALL)
+-    if match:
+-        json_str = match.group(0)
+-        try:
+-            # 验证JSON格式是否正确
+-            json_obj = json.loads(json_str)
+-            return json_obj  # 返回标准化的JSON对象
+-        except json.JSONDecodeError as e:
+-            print(f"JSON解码失败: {e}")
+-            return None
+-    else:
+-        print("未找到有效的JSON部分")
+-        return None
++    for value in _json_values(output):
++        if isinstance(value, dict):
++            return value
++    print("未找到有效的 JSON 对象")
++    return None
++
+ 
+ def normalize_to_json_list(output):
+-    """
+-    提取并验证JSON列表格式的字符串，返回解析后的JSON对象列表。
+-    即使JSON不完整，也尝试提取尽可能多的内容。
+-    """
+-    # 去除转义符和多余空白符
+-    cleaned_output = output.replace('\\"', '"').strip()
+-    
+-    # 使用宽松的正则表达式提取可能的JSON片段
+-    match = re.search(r"\[\s*(\{.*?\})*?\s*]", cleaned_output, re.DOTALL)
+-    
+-    if match:
+-        json_str = match.group(0)
+-        
+-        # 移除多余逗号（可能由于截断导致多余逗号）
+-        json_str = re.sub(r",\s*]", "]", json_str)
+-        json_str = re.sub(r",\s*}$", "}", json_str)
+-
+-        try:
+-            # 尝试完整解析
+-            json_obj = json.loads(json_str)
+-            if isinstance(json_obj, list):
+-                return json_obj
+-        except json.JSONDecodeError:
+-            # 如果完整解析失败，尝试逐项解析
+-            print("完整解析失败，尝试逐项解析...")
+-            items = []
+-            for partial_match in re.finditer(r"\{.*?\}", json_str, re.DOTALL):
+-                try:
+-                    item = json.loads(partial_match.group(0))
+-                    items.append(item)
+-                except json.JSONDecodeError:
+-                    print("跳过无效的JSON片段")
+-            return items if items else []
+-    else:
+-        print("未找到有效的JSON片段")
+-        return []
++    for value in _json_values(output):
++        if isinstance(value, list):
++            return value
++
++    # 截断列表的降级处理：只回收其中能够独立解析的对象。
++    objects = [value for value in _json_values(output) if isinstance(value, dict)]
++    if objects:
++        print("JSON 列表不完整，已回收可解析对象")
++        return objects
++    print("未找到有效的 JSON 列表")
++    return []
+ 
+ # 用LLM进行回答
+ def get_llm_response(cur_prompt, system_content):
+@@ -113,4 +96,4 @@
+     )
+ 
+     response = completion.choices[0].message.content
+-    return response
+\ No newline at end of file
++    return response

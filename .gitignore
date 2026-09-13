@@ -216,3 +216,63 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# MMKG local datasets and extracted paper content
+/CMEL-dataset-main/
+/data/
+/datasets/
+/paper_text.txt
+
+# Local Python environments and caches
+/.venv*/
+/.cache/
+**/__pycache__/
+*.py[cod]
+
+# Reproduction request/response caches and raw run artifacts
+# Curated metrics and conclusions are kept in repro/*.md.
+/repro/cache/
+/repro/runs/
+
+# Upstream bundled sample data and generated example artifacts
+/MMGraphRAG-main/examples/cache/
+/MMGraphRAG-main/examples/example_input/
+/MMGraphRAG-main/examples/example_output/
+/MMGraphRAG-main/examples/example_working/
+/MMGraphRAG-main/examples/paper/*.pdf
+
+# Generated code-intelligence indexes
+**/.gitnexus/
+**/codebase_graph.html
+
+# Model weights and checkpoints (models are managed outside this repository)
+/models/
+/checkpoints/
+**/models/
+**/checkpoints/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.gguf
+*.onnx
+*.h5
+*.msgpack
+pytorch_model*
+model-*.safetensors
+
+# Experiment trackers, temporary output, and local logs
+wandb/
+mlruns/
+outputs/
+tmp/
+*.log
+
+# Local secrets and credentials
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.json
