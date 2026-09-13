@@ -26,6 +26,22 @@ parameters are documented in `repro/README.md`.
 In particular, do not commit CMEL data or files such as `*.safetensors`,
 `*.ckpt`, `*.pt`, `*.bin`, or `*.gguf` to this repository.
 
+## Python dependencies
+
+The root [`requirements.txt`](requirements.txt) covers the MMGraphRAG core and
+the CMEL reproduction/evaluation pipeline. Python 3.10 is the validated version.
+
+```bash
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+For GPU use, install the PyTorch wheel matching the local CUDA driver before the
+last command. MinerU and the two vLLM model-serving environments are intentionally
+installed separately; their exact versions and launch commands are documented in
+[`repro/README.md`](repro/README.md).
+
 ## Quick start
 
 ```bash

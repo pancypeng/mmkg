@@ -1,0 +1,30 @@
+# MMGraphRAG + CMEL reproduction environment (Python 3.10).
+#
+# Install a PyTorch build matching the local CUDA driver first when necessary.
+# The validated evaluator uses torch 2.3.1+cu121; the public version constraint
+# below is also satisfied by that CUDA-local build.
+
+-r repro/requirements-eval.txt
+
+# Validated embedding/evaluation stack
+torch==2.3.1
+transformers==4.42.3
+sentence-transformers==3.0.1
+numpy==1.26.4
+scikit-learn==1.5.1
+networkx==3.4.2
+Pillow==12.3.0
+tqdm==4.70.0
+
+# MMGraphRAG core, image processing, PDF fallback, and visualization
+tiktoken>=0.7,<1
+ultralytics>=8.3,<9
+opencv-python>=4.10,<5
+PyMuPDF>=1.24,<2
+Flask>=3.0,<4
+Flask-Cors>=4.0,<7
+
+# MinerU is an optional, heavyweight PDF parser; install `mineru[all]`
+# separately when that backend is required. vLLM is also intentionally kept in
+# a separate serving environment because its Torch/Transformers constraints
+# differ from this evaluator environment. See repro/README.md.
